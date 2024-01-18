@@ -51,6 +51,11 @@ class Task implements \JsonSerializable
         return $this->task_completed;
     }
 
+    public function setCompleted(): void
+    {
+        $this->task_completed = true;
+    }
+
     public function getTaskDate(): \DateTime
     {
         return $this->task_date;

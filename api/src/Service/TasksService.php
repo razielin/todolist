@@ -61,6 +61,14 @@ class TasksService extends BaseService
         $this->taskRepository->remove($task);
     }
 
+    public function markAsCompleted(int $task_id): Task
+    {
+        $task = $this->findTaskOrThrow($task_id);
+        $task->setCompleted();
+        $this->taskRepository->add($task);
+        return $task;
+    }
+
     public function allTasks(): array
     {
         return $this->taskRepository->findAll();

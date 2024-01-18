@@ -4,8 +4,8 @@ namespace App\Controller;
 use App\Exceptions\BaseException;
 use App\Request\AddTaskRequest;
 use App\Request\EditTaskRequest;
-use App\Request\RemoveTaskRequest;
 use App\Service\TasksService;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -56,13 +56,26 @@ class TasksController extends BaseController
     }
 
     /**
-     * @Route("/tasks/delete")
+     * @Route("/tasks/{id}")
      */
-    public function deleteTask(RemoveTaskRequest $request): Response
+    public function deleteTask(int $id): Response
     {
         try {
-            $this->tasksService->deleteTask($request->task_id);
+            $this->tasksService->deleteTask($id);
             return $this->toOkJsonResponse(true);
+        } catch (BaseException $e) {
+            return $this->toFailJsonResponse([$e->getMessage()]);
+        }
+    }
+
+    /**
+     * @Route("/tasks/mark_completed/{id}")
+     */
+    public function taskMarkCompleted(int $id): Response
+    {
+        try {
+            $task = $this->tasksService->markAsCompleted($id);
+            return $this->toOkJsonResponse($task);
         } catch (BaseException $e) {
             return $this->toFailJsonResponse([$e->getMessage()]);
         }
