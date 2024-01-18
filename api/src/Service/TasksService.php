@@ -69,9 +69,11 @@ class TasksService extends BaseService
         return $task;
     }
 
-    public function allTasks(): array
+    public function getTasks(int $page): array
     {
-        return $this->taskRepository->findAll();
+        $tasks = $this->taskRepository->getTasksPaginated($page);
+        $this->taskRepository->incrementViewCount($tasks);
+        return $tasks;
     }
 
     /**

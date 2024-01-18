@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\TaskStatusEnum;
 use App\Repository\TaskRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -9,6 +10,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: TaskRepository::class)]
 class Task implements \JsonSerializable
 {
+    const IMPORTANT_TASK_DAYS = 1;
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -71,12 +73,33 @@ class Task implements \JsonSerializable
         $this->task_text = $task_text;
     }
 
+    public function getTaskStatus(): TaskStatusEnum
+    {
+        if ($this->task_view_count === 0) {
+            return TaskStatusEnum::NEW;
+        }
+        if ($this->isTaskCompleted()) {
+            return TaskStatusEnum::DONE;
+        }
+        if ($this->isImportantTask()) {
+            return TaskStatusEnum::IMPORTANT;
+        }
+        return TaskStatusEnum::VIEWED;
+    }
+
+    private function isImportantTask(): bool
+    {
+        $now = new \DateTime();
+        return $this->task_date->diff($now)->days >= self::IMPORTANT_TASK_DAYS;
+    }
+
     public function jsonSerialize()
     {
         return [
             'task_id' => $this->task_id,
             'task_text'  => $this->task_text,
             'task_completed' => $this->task_completed,
+            'task_status' => $this->getTaskStatus(),
             'task_date' => $this->task_date->format('Y-m-d H:i:s'),
             'task_view_count' => $this->task_view_count,
         ];

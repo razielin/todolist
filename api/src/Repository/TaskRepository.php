@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\DTO\UserReportItem;
 use App\Entity\Task;
+use App\Utils\Paginator;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -17,13 +18,17 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class TaskRepository extends ServiceEntityRepository
 {
+    const TASKS_PER_PAGE = 5;
+
     private $entityManager;
+    private $paginator;
 
 
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(ManagerRegistry $registry, Paginator $paginator)
     {
         parent::__construct($registry, Task::class);
         $this->entityManager = $registry->getManager();
+        $this->paginator = $paginator;
     }
 
     public function add(Task $task): void
@@ -39,25 +44,36 @@ class TaskRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return UserReportItem[]
+     * @return Task[]
      */
-    public function getUsersWithGroups(): array
+    public function getTasksPaginated($page = 1): array
     {
+        $entityManager = $this->getEntityManager();
+        $query = $entityManager->createQuery("SELECT t FROM App\Entity\Task t ORDER BY t.task_id DESC");
+        $items = $this->paginator->paginate($query, $page, self::TASKS_PER_PAGE)->getItems();
+
+        $res = [];
+        foreach ($items as $item) {
+            $res[] = $item;
+        }
+        return $res;
+    }
+
+    /**
+     * @param Task[] $tasks
+     * @return void
+     */
+    public function incrementViewCount(array $tasks): void
+    {
+        $ids = implode(',', array_map(fn(Task $t) => $t->getTaskId(), $tasks));
+        if (!$ids) {
+            return;
+        }
         $conn = $this->entityManager->getConnection();
-        $res = $conn->query("
-            SELECT user_id, name, email, 
-                   GROUP_CONCAT(group_name) as user_groups, 
-                   GROUP_CONCAT(group_id) as group_ids
-            FROM user_groups
-            LEFT JOIN `user` USING (user_id)
-            LEFT JOIN `groups` USING (group_id)
-            GROUP BY user_id
-        ")->fetchAll();
-        return array_map(
-            fn($user) => new UserReportItem(
-                $user['user_id'], $user['name'], $user['email'], $user['user_groups'], $user['group_ids']
-            ),
-            $res
-        );
+        $conn->executeStatement("
+            UPDATE task
+            SET task_view_count = task_view_count + 1
+            WHERE task_id IN ($ids) 
+        ");;
     }
 }

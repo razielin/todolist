@@ -21,11 +21,11 @@ class TasksController extends BaseController
     }
 
     /**
-     * @Route("/tasks")
+     * @Route("/tasks/page/{page}")
      */
-    public function tasks(): Response
+    public function tasks(int $page = 1): Response
     {
-        $res = $this->tasksService->allTasks();
+        $res = $this->tasksService->getTasks($page);
         return $this->toOkJsonResponse($res);
     }
 
